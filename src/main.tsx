@@ -34,6 +34,8 @@ import {
   sendGuard,
   history,
   deadlineTime,
+  quoteExpired,
+  quoteSecondsRemaining,
   type Instruction,
   type Payment,
   type Quote,
@@ -44,6 +46,7 @@ import "@fontsource/dm-sans/600.css";
 import "@fontsource/dm-sans/700.css";
 import "@fontsource/libre-caslon-display/400.css";
 import "./styles.css";
+import { RouteEvaluation } from "./RouteEvaluation";
 const nav = [
   ["Overview", LayoutDashboard],
   ["Payments", ArrowLeftRight],
@@ -179,9 +182,9 @@ function App() {
   const all = [...saved, ...history],
     supplier = suppliers.find((s) => s.id === i.supplierId)!,
     chosen = routes.find((r) => r.id === selected),
-    best = recommended(routes),
+    best = recommended(routes, i.priority),
     balance = 248650 - saved.reduce((a, p) => a + p.quote.debit, 0),
-    expired = quoteAt > 0 && Date.now() - quoteAt >= 300000;
+    expired = quoteAt > 0 && quoteExpired(quoteAt);
   useEffect(() => {
     const t = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(t);
@@ -197,7 +200,12 @@ function App() {
     const done = setTimeout(() => {
       const q = quotes(i);
       setRoutes(q);
-      setSelected(recommended(q)?.id || "");
+      setSelected(
+        (current) =>
+          q.find((r) => r.id === current && r.eligible)?.id ||
+          recommended(q, i.priority)?.id ||
+          "",
+      );
       setQuoteAt(Date.now());
       setStage(1);
       setLoading(false);
@@ -217,7 +225,7 @@ function App() {
       return;
     const t = setInterval(() => setProgress((p) => Math.min(6, p + 1)), 1100);
     return () => clearInterval(t);
-  }, [stage, active]);
+  }, [stage, active, saved]);
   useEffect(() => {
     if (progress === 6 && active && active.status !== "Reconciled") {
       const next = { ...active, status: "Reconciled" };
@@ -230,6 +238,7 @@ function App() {
     }
   }, [progress, active]);
   function go(p: string) {
+    setLoading(false);
     setPage(p);
     setMobile(false);
     setError("");
@@ -247,6 +256,8 @@ function App() {
           : "2026-10-0" + (6 + suppliers.indexOf(s) - 1) + "T15:00",
     });
     setStage(0);
+    setSelected("");
+    setLoading(false);
     setRoutes([]);
     setError("");
     setPage("New payment");
@@ -315,6 +326,9 @@ function App() {
 
   return (
     <div className="app">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <aside className={mobile ? "sidebar open" : "sidebar"}>
         <a
           className="brand"
@@ -380,6 +394,7 @@ function App() {
             <button
               className="icon-button mobile-toggle"
               aria-label="Toggle navigation"
+              aria-expanded={mobile}
               onClick={() => setMobile(!mobile)}
             >
               {mobile ? <X /> : <Menu />}
@@ -393,7 +408,7 @@ function App() {
             </span>
           </div>
         </header>
-        <main>
+        <main id="main-content">
           {page === "Overview" && (
             <>
               <div className="page-heading">
@@ -849,7 +864,10 @@ function App() {
                         </div>
                         <button
                           className="text-button"
-                          onClick={() => setStage(0)}
+                          onClick={() => {
+                            setStage(0);
+                            setSelected("");
+                          }}
                         >
                           Edit instruction
                         </button>
@@ -867,10 +885,7 @@ function App() {
                           {expired
                             ? "Quote expired · refresh"
                             : "Quotes valid " +
-                              Math.max(
-                                0,
-                                300 - Math.floor((Date.now() - quoteAt) / 1000),
-                              ) +
+                              quoteSecondsRemaining(quoteAt) +
                               "s"}
                         </button>
                       </div>
@@ -885,7 +900,7 @@ function App() {
                             </div>
                             <h3>
                               {best.name} meets your deadline for{" "}
-                              {money(best.cost)} total cost.
+                              {money(best.cost)} economic cost.
                             </h3>
                             <p>
                               {money(routes[0].cost - best.cost)} less than the
@@ -899,6 +914,17 @@ function App() {
                         <div className="error">
                           No eligible route. Adjust the deadline or resolve
                           beneficiary screening before proceeding.
+                        </div>
+                      )}
+                      <RouteEvaluation
+                        routes={routes}
+                        best={best}
+                        priority={i.priority}
+                      />
+                      {expired && (
+                        <div className="error" role="alert">
+                          These quotes have expired. Refresh routes to get a new
+                          five-minute quote window. Approval is paused.
                         </div>
                       )}
                       <div className="route-cards">
@@ -916,9 +942,31 @@ function App() {
                               {best?.id === r.id && <Badge>Recommended</Badge>}
                             </div>
                             <h3>{r.name}</h3>
+                            <div
+                              className={
+                                "route-exclusion " +
+                                (r.eligible ? "eligible" : "")
+                              }
+                            >
+                              <strong>
+                                {!r.compliant
+                                  ? "SCREENING REQUIRED"
+                                  : !r.available
+                                    ? "ROUTE UNAVAILABLE"
+                                    : !r.meetsDeadline
+                                      ? "MISSES DEADLINE"
+                                      : "MEETS DEADLINE"}
+                              </strong>
+                              <dl>
+                                <dt>Expected</dt>
+                                <dd>{date(NOW + r.hours * 3600000)}</dd>
+                                <dt>Required</dt>
+                                <dd>{date(deadlineTime(i.deadline))}</dd>
+                              </dl>
+                            </div>
                             <div className="route-price">
                               {money(r.cost)}
-                              <small>Total estimated cost</small>
+                              <small>Total estimated economic cost</small>
                             </div>
                             <dl className="quote-breakdown">
                               <dt>
@@ -934,7 +982,7 @@ function App() {
                               <span>Supplier receives</span>
                               <b>{money(r.receive, supplier.currency)}</b>
                               <small>
-                                1 SGD = {r.rate.toFixed(4)} {supplier.currency}
+                                1 SGD = {r.rate.toFixed(5)} {supplier.currency}
                               </small>
                             </div>
                             <dl className="quote-details">
@@ -982,32 +1030,6 @@ function App() {
                           </article>
                         ))}
                       </div>
-                      <div className="analysis-grid">
-                        <details className="panel explanation">
-                          <summary>Why not the cheapest route?</summary>
-                          <p>
-                            {routes[3].eligible
-                              ? "The scheduled route meets this deadline. Priority weights also consider settlement speed, FX quality and reliability; choose Lowest cost to give price more weight."
-                              : `Scheduled transfer costs ${money(routes[3].cost)}, but its 72-hour estimate misses your supplier’s deadline. Deadline eligibility is applied before ranking.`}
-                          </p>
-                        </details>
-                        <details className="panel explanation">
-                          <summary>
-                            How was this recommendation determined?
-                          </summary>
-                          <p>
-                            Deterministic prototype ranking:{" "}
-                            {i.priority === "Balanced"
-                              ? "cost 35%, settlement 25%, reliability 15%, FX quality 15%, reconciliation 10%"
-                              : i.priority === "Lowest cost"
-                                ? "cost 75%, settlement 0% (deadline remains mandatory), reliability 10%, FX quality 5%, reconciliation 10%"
-                                : "cost 25%, settlement 45%, reliability 15%, FX quality 5%, reconciliation 10%"}
-                            . Availability, screening and deadline are mandatory
-                            gates. Illustrative inputs; no live AI or provider
-                            connection.
-                          </p>
-                        </details>
-                      </div>
                       <p className="help">
                         FX cost is the spread against a simulated mid-market
                         rate of {supplier.rate} {supplier.currency}/SGD. It is
@@ -1017,7 +1039,10 @@ function App() {
                       <div className="form-actions">
                         <button
                           className="text-button"
-                          onClick={() => setStage(0)}
+                          onClick={() => {
+                            setStage(0);
+                            setSelected("");
+                          }}
                         >
                           <ArrowLeft size={16} /> Back
                         </button>
@@ -1066,7 +1091,7 @@ function App() {
                           <dd>{chosen.name}</dd>
                           <dt>FX quote</dt>
                           <dd>
-                            1 SGD = {chosen.rate.toFixed(4)} {supplier.currency}
+                            1 SGD = {chosen.rate.toFixed(5)} {supplier.currency}
                           </dd>
                           <dt>Fees added to principal</dt>
                           <dd>{money(chosen.fee + chosen.intermediary)}</dd>
@@ -1098,7 +1123,10 @@ function App() {
                         )}
                         {expired && (
                           <div className="error">
-                            Quote expired. Refresh routes to approve.
+                            Quote expired. Refresh routes to approve.{" "}
+                            <button className="text-button" onClick={retrieve}>
+                              <RefreshCw size={15} /> Refresh routes
+                            </button>
                           </div>
                         )}
                         <div className="form-actions">
@@ -1111,6 +1139,7 @@ function App() {
                           <button
                             className="primary"
                             disabled={
+                              !chosen.eligible ||
                               expired ||
                               i.amount > 100000 ||
                               chosen.debit > balance
@@ -1241,6 +1270,14 @@ function App() {
                           <h2>Close the loop.</h2>
                           <p>Your supplier payment, connected to the books.</p>
                           <dl>
+                            <dt>Supplier</dt>
+                            <dd>
+                              {
+                                suppliers.find(
+                                  (s) => s.id === active.instruction.supplierId,
+                                )!.name
+                              }
+                            </dd>
                             <dt>Invoice</dt>
                             <dd>{active.instruction.invoice}</dd>
                             <dt>Payment reference</dt>
@@ -1277,6 +1314,54 @@ function App() {
                               </Badge>
                             </dd>
                           </dl>
+                          <details className="payment-facts">
+                            <summary>Approved payment details</summary>
+                            <dl>
+                              {" "}
+                              <dt>Principal</dt>
+                              <dd>{money(active.instruction.amount)}</dd>
+                              <dt>Selected route</dt>
+                              <dd>{active.quote.name}</dd>
+                              <dt>FX quote</dt>
+                              <dd>
+                                1 SGD = {active.quote.rate.toFixed(5)}{" "}
+                                {
+                                  suppliers.find(
+                                    (s) =>
+                                      s.id === active.instruction.supplierId,
+                                  )!.currency
+                                }
+                              </dd>
+                              <dt>Embedded FX cost</dt>
+                              <dd>
+                                {money(active.quote.fxCost)} (
+                                {(active.quote.spread * 100).toFixed(2)}%)
+                              </dd>
+                              <dt>Transfer / intermediary fees</dt>
+                              <dd>
+                                {money(active.quote.fee)} /{" "}
+                                {money(active.quote.intermediary)}
+                              </dd>
+                              <dt>Total economic cost</dt>
+                              <dd>{money(active.quote.cost)}</dd>
+                              <dt>Total account debit</dt>
+                              <dd>{money(active.quote.debit)}</dd>
+                              <dt>Expected arrival</dt>
+                              <dd>
+                                {date(
+                                  active.created + active.quote.hours * 3600000,
+                                )}
+                              </dd>
+                              <dt>Required arrival</dt>
+                              <dd>
+                                {date(
+                                  deadlineTime(active.instruction.deadline),
+                                )}
+                              </dd>
+                              <dt>Simulated reliability</dt>
+                              <dd>{active.quote.reliability}%</dd>
+                            </dl>
+                          </details>
                           <p className="help">
                             Prototype match by invoice reference. Production
                             matching must validate invoice currency, open
@@ -1371,13 +1456,47 @@ function App() {
                     <dl>
                       <dt>Bank account</dt>
                       <dd>{s.bank}</dd>
-                      <dt>Open invoice</dt>
+                      <dt>Invoice</dt>
                       <dd>{s.invoice}</dd>
                       <dt>Invoice principal</dt>
-                      <dd>{money(s.amount)}</dd>
+                      <dd>
+                        {money(
+                          saved.find(
+                            (p) =>
+                              p.instruction.supplierId === s.id &&
+                              p.instruction.invoice === s.invoice,
+                          )?.instruction.amount ?? s.amount,
+                        )}
+                      </dd>
+                      <dt>Invoice status</dt>
+                      <dd>
+                        {saved.find(
+                          (p) =>
+                            p.instruction.supplierId === s.id &&
+                            p.instruction.invoice === s.invoice,
+                        )?.status || "Open"}
+                      </dd>
                     </dl>
-                    <button className="secondary" onClick={() => start(s.id)}>
-                      Prepare payment <ArrowRight size={16} />
+                    <button
+                      className="secondary"
+                      onClick={() => {
+                        const paid = saved.find(
+                          (p) =>
+                            p.instruction.supplierId === s.id &&
+                            p.instruction.invoice === s.invoice,
+                        );
+                        if (paid) inspect(paid);
+                        else start(s.id);
+                      }}
+                    >
+                      {saved.some(
+                        (p) =>
+                          p.instruction.supplierId === s.id &&
+                          p.instruction.invoice === s.invoice,
+                      )
+                        ? "View payment"
+                        : "Prepare payment"}{" "}
+                      <ArrowRight size={16} />
                     </button>
                   </section>
                 ))}

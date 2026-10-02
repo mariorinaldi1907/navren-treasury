@@ -1,4 +1,11 @@
 export const NOW = new Date("2026-10-02T10:00:00+08:00").getTime();
+export const QUOTE_TTL_MS = 300_000;
+export const quoteSecondsRemaining = (quotedAt: number, now = Date.now()) =>
+  Math.max(0, Math.ceil((quotedAt + QUOTE_TTL_MS - now) / 1000));
+export const quoteExpired = (quotedAt: number, now = Date.now()) =>
+  now >= quotedAt + QUOTE_TTL_MS;
+const cents = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
 export const money = (n: number, c = "SGD") =>
   new Intl.NumberFormat("en-SG", {
     style: "currency",
@@ -116,12 +123,18 @@ export interface Quote {
   cost: number;
   receive: number;
   debit: number;
+  meetsDeadline: boolean;
   eligible: boolean;
   reason: string;
   score: number;
 }
 export const deadlineTime = (v: string) => new Date(v + ":00+08:00").getTime();
-export function quotes(i: Instruction): Quote[] {
+export const demoControls = {
+  companyVerified: true,
+  sanctionsPassed: true,
+  monitoringPassed: true,
+};
+export function quotes(i: Instruction, controls = demoControls): Quote[] {
   const s = suppliers.find((s) => s.id === i.supplierId)!;
   const base = [
     {
@@ -178,62 +191,78 @@ export function quotes(i: Instruction): Quote[] {
     },
   ];
   const calculated = base.map((r) => {
-    const compliant = r.compliant && s.screened;
+    const compliant =
+      r.compliant &&
+      s.screened &&
+      controls.companyVerified &&
+      controls.sanctionsPassed &&
+      controls.monitoringPassed;
     const meets = NOW + r.hours * 3600000 <= deadlineTime(i.deadline);
     const reason = !compliant
-      ? "Beneficiary review required"
+      ? !s.screened
+        ? "Beneficiary review required"
+        : "Mandatory compliance review required"
       : !r.available
         ? "Unavailable for this corridor or amount"
         : !meets
           ? "Arrives after your deadline"
           : "";
-    const fxCost = i.amount * r.spread;
+    const fxCost = cents(i.amount * r.spread);
     return {
       ...r,
       compliant,
       rate: s.rate * (1 - r.spread),
       fxCost,
-      cost: fxCost + r.fee + r.intermediary,
-      receive: i.amount * s.rate * (1 - r.spread),
-      debit: i.amount + r.fee + r.intermediary,
+      cost: cents(fxCost + r.fee + r.intermediary),
+      receive: cents(i.amount * s.rate * (1 - r.spread)),
+      debit: cents(i.amount + r.fee + r.intermediary),
+      meetsDeadline: meets,
       eligible: !reason,
       reason,
       score: 0,
     };
   });
-  const maxCost = Math.max(...calculated.map((r) => r.cost));
+  const maxCost = Math.max(
+    1,
+    ...calculated.filter((r) => r.eligible).map((r) => r.cost),
+  );
   return calculated.map((r) => ({
     ...r,
     score: r.eligible
-      ? Math.round(
-          100 *
-            ((1 - r.cost / maxCost) *
-              (i.priority === "Lowest cost"
-                ? 0.75
-                : i.priority === "Fastest arrival"
-                  ? 0.25
-                  : 0.35) +
-              (1 - r.hours / 72) *
-                (i.priority === "Fastest arrival"
-                  ? 0.45
-                  : i.priority === "Lowest cost"
-                    ? 0
-                    : 0.25) +
-              (r.reliability / 100) *
-                (i.priority === "Lowest cost" ? 0.1 : 0.15) +
-              (1 - r.spread / 0.006) *
-                (i.priority === "Fastest arrival"
-                  ? 0.05
-                  : i.priority === "Lowest cost"
-                    ? 0.05
-                    : 0.15) +
-              (r.reconcile ? 0.1 : 0)),
-        )
+      ? 100 *
+        ((1 - r.cost / maxCost) * 0.35 +
+          (1 - r.hours / 72) * 0.25 +
+          (r.reliability / 100) * 0.15 +
+          (1 - r.spread / 0.006) * 0.15 +
+          (r.reconcile ? 0.1 : 0))
       : 0,
   }));
 }
-export function recommended(q: Quote[]) {
-  return q.filter((r) => r.eligible).sort((a, b) => b.score - a.score)[0];
+export function recommended(q: Quote[], priority = "Balanced") {
+  return q
+    .filter((r) => r.eligible)
+    .sort((a, b) =>
+      priority === "Lowest cost"
+        ? a.cost - b.cost || a.hours - b.hours || a.id.localeCompare(b.id)
+        : priority === "Fastest arrival"
+          ? a.hours - b.hours || a.cost - b.cost || a.id.localeCompare(b.id)
+          : b.score - a.score || a.cost - b.cost || a.id.localeCompare(b.id),
+    )[0];
+}
+export function cheapestExplanation(q: Quote[], best?: Quote) {
+  const cheapest = [...q].sort((a, b) => a.cost - b.cost)[0];
+  if (!best || !cheapest)
+    return "No route meets all mandatory controls. Resolve the exclusions before comparing eligible trade-offs.";
+  if (cheapest.id === best.id)
+    return `${best.name} is the cheapest eligible route and meets your supplier's deadline.`;
+  const saving = money(best.cost - cheapest.cost);
+  if (!cheapest.compliant)
+    return `${cheapest.name} costs ${saving} less, but requires compliance review. Mandatory controls cannot be traded for savings.`;
+  if (!cheapest.available)
+    return `${cheapest.name} costs ${saving} less, but is unavailable for this corridor or amount.`;
+  if (!cheapest.meetsDeadline)
+    return `${cheapest.name} costs ${saving} less, but its expected arrival is after the supplier's required deadline.`;
+  return `${cheapest.name} costs ${saving} less and is eligible. Your selected treasury priority favors the recommendation's speed, reliability and operational fit.`;
 }
 export function validate(i: Instruction) {
   if (!Number.isFinite(i.amount) || i.amount <= 0 || i.amount > 500000)
@@ -292,12 +321,25 @@ export function sendGuard(
   quoteAt: number,
   balance: number,
 ) {
+  const inputError = validate(i);
+  if (inputError) return inputError;
+  const current = quotes(i).find((r) => r.id === q.id);
   return (
-    validate(i) ||
-    (!quotes(i).find((r) => r.id === q.id)?.eligible
-      ? "The route no longer meets payment controls."
+    (!current?.eligible ? "The route no longer meets payment controls." : "") ||
+    (!current ||
+    ![
+      "rate",
+      "fxCost",
+      "cost",
+      "receive",
+      "debit",
+      "fee",
+      "intermediary",
+      "hours",
+    ].every((key) => current[key as keyof Quote] === q[key as keyof Quote])
+      ? "Payment instruction changed. Refresh routes before approving."
       : "") ||
-    (Date.now() - quoteAt >= 300000
+    (quoteExpired(quoteAt)
       ? "Your quote has expired. Refresh routes before approving."
       : "") ||
     (q.debit > balance ? "Insufficient available SGD balance." : "") ||

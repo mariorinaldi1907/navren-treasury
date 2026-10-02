@@ -1795,3 +1795,346 @@ button.icon-button {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* Refinement: explicit route eligibility and readable decision support. */
+.skip-link {
+  position: fixed;
+  left: 16px;
+  top: -60px;
+  background: #fffdf9;
+  color: #402331;
+  padding: 12px 18px;
+  z-index: 100;
+}
+.skip-link:focus {
+  top: 12px;
+}
+.orchestration {
+  margin: 0 0 22px;
+  border: 1px solid var(--line);
+  background: #fffefb;
+  border-radius: 5px;
+  padding: 18px 21px;
+}
+.evaluation-counts {
+  display: flex;
+  gap: 10px 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #655a60;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.evaluation-counts strong {
+  color: var(--wine);
+  margin-right: auto;
+}
+.evaluation-counts span {
+  white-space: nowrap;
+}
+.cheapest-rationale {
+  padding: 16px 0;
+}
+.cheapest-rationale h3 {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.cheapest-rationale p {
+  font-size: 13px;
+  color: #5f545b;
+  line-height: 1.65;
+}
+.evaluation-details summary {
+  cursor: pointer;
+  color: var(--wine);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 0;
+}
+.evaluation-rule {
+  font-size: 13px;
+  color: var(--wine);
+  margin-top: 17px;
+  font-weight: 600;
+}
+.evaluation-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 20px;
+}
+.evaluation-columns h3 {
+  font-size: 13px;
+}
+.evaluation-columns ul {
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #61565d;
+}
+.evaluation-columns p {
+  font-size: 12px;
+}
+.evaluation-foot {
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wine);
+}
+.evaluation-details small {
+  font-size: 11px;
+  margin-top: 8px;
+}
+.route-card.unavailable {
+  background: #f1eee8;
+  border-color: #d8d0c6;
+}
+.route-card.unavailable h3 {
+  color: #695b61;
+}
+.route-exclusion {
+  margin-top: 13px;
+  background: #ede1cd;
+  border-left: 3px solid #9a6a2a;
+  padding: 11px;
+  color: #71501f;
+}
+.route-exclusion strong {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+.route-exclusion dl {
+  margin: 10px 0 0;
+  gap: 7px;
+  font-size: 11px;
+  grid-template-columns: auto 1fr;
+}
+.route-exclusion dt {
+  color: #71501f;
+}
+.route-exclusion dd {
+  line-height: 1.4;
+}
+.route-card {
+  position: relative;
+}
+.route-price {
+  margin-top: 18px !important;
+}
+.route-top .eyebrow {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.route-top .badge {
+  font-size: 10px;
+}
+.route-price small {
+  font-size: 11px;
+}
+.quote-breakdown {
+  font-size: 12px;
+}
+.quote-details dt,
+.quote-details dd {
+  font-size: 11px !important;
+  line-height: 1.55;
+}
+.receive span,
+.receive small {
+  font-size: 11px;
+}
+.receive b {
+  font-size: 17px;
+}
+.route-reason {
+  font-size: 11px;
+}
+.recommendation h3 {
+  font-size: 16px;
+}
+.recommendation p {
+  font-size: 12px;
+}
+.recommendation .eyebrow {
+  font-size: 10px;
+}
+.route-heading p {
+  font-size: 12px;
+}
+label {
+  font-size: 12px;
+}
+input,
+select {
+  font-size: 13px;
+}
+.help {
+  font-size: 11px;
+}
+.control-line {
+  font-size: 12px;
+}
+.review dl {
+  font-size: 13px;
+}
+.review dd small {
+  font-size: 11px;
+}
+.timeline-item b {
+  font-size: 13px;
+}
+.timeline-item small {
+  font-size: 12px;
+}
+.context-panel dl {
+  font-size: 12px;
+}
+.context-panel .help {
+  font-size: 11px;
+}
+.nav {
+  font-size: 14px;
+}
+.instruction-strip {
+  font-size: 13px;
+}
+.instruction-strip small {
+  font-size: 11px;
+}
+.badge {
+  font-size: 10px;
+}
+.primary,
+.secondary,
+.text-button {
+  font-size: 12px;
+}
+.route-card button {
+  font-size: 12px;
+}
+.metrics span {
+  font-size: 12px;
+}
+.metrics small {
+  font-size: 11px;
+}
+.obligation-name,
+.obligation-amount {
+  font-size: 13px;
+}
+.obligation small {
+  font-size: 11px;
+}
+td {
+  font-size: 12px;
+}
+td small {
+  font-size: 10px;
+}
+th {
+  font-size: 10px;
+}
+.supplier-link {
+  font-size: 12px;
+}
+.section-heading .subtle {
+  font-size: 11px;
+}
+@media (min-width: 1201px) {
+  .route-cards {
+    gap: 14px;
+  }
+  .route-card {
+    padding: 19px 15px;
+  }
+  .route-card.selected {
+    padding: 18px 14px;
+  }
+  .route-cards .route-card h3 {
+    font-size: 16px;
+  }
+  .route-exclusion dd {
+    font-size: 10px;
+  }
+  .quote-breakdown {
+    font-size: 11px;
+    grid-template-columns: 1.5fr 1fr;
+  }
+  .quote-details {
+    grid-template-columns: 1fr 1.15fr;
+    gap: 11px 6px;
+  }
+}
+@media (max-width: 650px) {
+  .evaluation-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .orchestration {
+    padding: 16px;
+  }
+  .evaluation-counts {
+    font-size: 11px;
+    gap: 10px 13px;
+  }
+  .evaluation-counts strong {
+    flex-basis: 100%;
+  }
+  .recommendation h3 {
+    font-size: 14px;
+  }
+  .recommendation p {
+    font-size: 11px;
+  }
+  .quote-details dt,
+  .quote-details dd {
+    font-size: 12px !important;
+  }
+  .instruction-strip {
+    font-size: 12px;
+  }
+  .review dl {
+    font-size: 12px;
+  }
+  .obligation-name,
+  .obligation-amount {
+    font-size: 11px;
+  }
+  .obligation small {
+    font-size: 10px;
+  }
+  .route-exclusion dd {
+    font-size: 11px;
+  }
+  .supplier-summary .badge {
+    font-size: 10px;
+  }
+  .route-top .eyebrow {
+    max-width: 65%;
+  }
+}
+.route-exclusion.eligible {
+  background: #f5f2eb;
+  border-left-color: #b6c2ad;
+  color: #536749;
+}
+.route-exclusion.eligible dt {
+  color: #64745b;
+}
+.route-exclusion {
+  min-height: 100px;
+}
+.payment-facts {
+  border-block: 1px solid #dcd3c9;
+  padding: 15px 0;
+  margin-top: 20px;
+}
+.payment-facts summary {
+  font-weight: 600;
+  color: var(--wine);
+  cursor: pointer;
+  font-size: 12px;
+}
+.payment-facts dl {
+  margin-bottom: 5px;
+}
