@@ -20,7 +20,7 @@ Open the URL printed by Vite. For a production bundle: `npm run build`. For fina
 3. Keep **Siam Precision Components Co., Ltd.**, **SGD 50,000**, **INV-2048**, **Supplier invoice**, tomorrow at **15:00 SGT**, and **Balanced**.
 4. Click **Compare available routes**. The short sequence checks availability, quotes, settlement, controls and deadline.
 5. Compare all four routes. **Regional instant** is recommended: S$106 economic cost versus S$375 for the correspondent bank. Account debit is S$50,016 and supplier receives THB 1,277,696.
-6. Expand **Why not the cheapest route?** The S$70 scheduled transfer misses the deadline. Expand **How was this recommendation determined?** to show weights and mandatory gates.
+6. Show **Why not the cheapest route?** The S$70 scheduled transfer saves S$36 but misses the deadline: expected 5 Oct, 10:00 versus required 3 Oct, 15:00 SGT. Expand **How Navren evaluated these routes** to show mandatory gates before optimization.
 7. Click **Review selected route**. Show debit, FX, destination amount, invoice and controls.
 8. Click **Approve & send**. No real funds move.
 9. Watch accelerated tracking finish in approximately seven seconds. The ledger shows invoice matched, accounting sync complete and reconciled.
@@ -53,7 +53,7 @@ Overview; Payments with search/status filter/CSV export; payment instruction; ro
 
 The demo clock is 2 Oct 2026, 10:00 Singapore time. Timeline events compress hours into seconds; they are not actual processing speed measurements. Historical records are static; newly created records persist in browser localStorage. Data is local to the browser and resettable, not secure or shared storage. App navigation uses internal state; a refresh returns to Overview.
 
-The recommendation is a deterministic explainable simulation of an orchestration engine, with no live LLM. Availability, screening and deadline are hard gates. Cost, settlement speed, reliability, FX quality and reconciliation are weighted ranking inputs; a separate FX factor intentionally emphasizes quote quality even though spread contributes to cost. Balanced weights are 35/25/15/15/10; Lowest cost 75/0/10/5/10; Fastest arrival 25/45/15/5/10. Weights total 100%. Compliance is never traded against price.
+The recommendation is a deterministic explainable simulation of an orchestration engine, with no live LLM. Availability, screening and deadline are hard gates. Cost, settlement speed, reliability, FX quality and reconciliation are weighted ranking inputs; a separate FX factor intentionally emphasizes quote quality even though spread contributes to cost. Balanced weights are 35/25/15/15/10 (100% total). Lowest cost chooses the exact cheapest eligible route; Fastest arrival chooses the exact fastest eligible route. Ties are resolved deterministically. Compliance is never traded against price.
 
 Company KYB and beneficiary checks are fixtures, not actual AML or sanctions screening. The second approver workflow is represented as an execution hold, not a real multi-user approval queue. New demo invoices match by reference; production requires invoice currency, outstanding amount, tolerance and partial-payment checks. All quoted providers are assumed to support the mock accounting adapter. No stablecoin route or live Project Nexus connection is claimed. There is no MAS licence or regulatory approval claim.
 
@@ -68,4 +68,4 @@ Production would require licensed provider partnerships, corridor/limit and holi
 
 ## Validation
 
-See `../work/QA.md` for the executed checks and review outcomes. Eight automated model tests cover calculations, deadline recommendation, screening, route availability, expiry, funds, authorization and invalid instructions. Browser review covers the complete default journey, transaction search, navigation, integration simulation, reset, blocked beneficiary and the later-deadline recommendation.
+See `../work/QA.md` for the executed checks and review outcomes. Fifteen automated model tests cover calculations, deadline recommendation, screening, route availability, expiry, funds, authorization and invalid instructions. Browser review covers the complete default journey, transaction search, navigation, integration simulation, reset, blocked beneficiary and the later-deadline recommendation.
