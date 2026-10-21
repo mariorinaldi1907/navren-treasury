@@ -59,3 +59,10 @@ The product now makes one instruction, eligibility gates, transparent route trad
 Remaining prototype boundaries: deterministic fixtures, a fixed scenario date, five real-minute quotes, accelerated tracking, browser-local records, reference-only invoice matching, and an execution hold rather than a real multi-user second-approval workflow. No application deployment performed.
 
 Production preview (`npm run preview -- --port 4173`) was opened and the default instruction/comparison smoke-tested after the final build; the rendered counts/rationale were correct and console logs contained no errors or warnings. Delivery used authenticated GitHub browser commits because this source directory has no Git metadata and the CLI/connector has no access to the private repository. Existing remote history is preserved; teammates can clone/pull `main` normally.
+
+## Presentation date correction — 21 October 2026
+
+- Rebased the fixed demo clock to 30 October 2026, 10:00 SGT, after the 26 October presentation. The default deadline is 31 October, 15:00 SGT; Scheduled transfer arrives 2 November, 10:00 SGT and fails that deadline. Regional instant still arrives 30 October, 10:15 SGT.
+- Centralized deadline presets, supplier due labels, header and validation copy around the scenario clock, including October-to-November rollover. Earlier browser payment records remain untouched in their old storage key; the new scenario opens with fresh demo data.
+- Browser-verified default instruction, 3 eligible / 1 deadline-excluded comparison, approval dates, and Flexible 04 Nov + Lowest cost selecting Scheduled transfer correctly.
+- All 16 tests, TypeScript, zero-warning lint and production build passed. Updated Vite lockfile from 6.4.3 to patched 6.4.5; npm audit then reported zero vulnerabilities.
