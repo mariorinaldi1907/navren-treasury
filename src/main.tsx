@@ -26,6 +26,9 @@ import {
   money,
   date,
   NOW,
+  demoDeadline,
+  demoDay,
+  PAYMENT_STORAGE_KEY,
   suppliers,
   initial,
   quotes,
@@ -170,7 +173,7 @@ function App() {
     [toast, setToast] = useState(""),
     [saved, setSaved] = useState<Payment[]>(() => {
       try {
-        return JSON.parse(localStorage.getItem("navren-payments") || "[]");
+        return JSON.parse(localStorage.getItem(PAYMENT_STORAGE_KEY) || "[]");
       } catch {
         return [];
       }
@@ -232,7 +235,7 @@ function App() {
       setActive(next);
       setSaved((ps) => {
         const n = ps.map((p) => (p.id === next.id ? next : p));
-        localStorage.setItem("navren-payments", JSON.stringify(n));
+        localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(n));
         return n;
       });
     }
@@ -253,7 +256,7 @@ function App() {
       deadline:
         s.id === "siam"
           ? initial.deadline
-          : "2026-10-0" + (6 + suppliers.indexOf(s) - 1) + "T15:00",
+          : demoDeadline(3 + suppliers.indexOf(s)),
     });
     setStage(0);
     setSelected("");
@@ -290,7 +293,7 @@ function App() {
     };
     const n = [p, ...saved];
     setSaved(n);
-    localStorage.setItem("navren-payments", JSON.stringify(n));
+    localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(n));
     setActive(p);
     setProgress(0);
     setStage(3);
@@ -404,7 +407,7 @@ function App() {
           <div className="top-right">
             <span className="demo-tag">DEMO · NO REAL FUNDS</span>
             <span className="clock">
-              02 Oct 2026 <span>10:00 SGT</span>
+              {demoDay(NOW, true)} <span>10:00 SGT · demo clock</span>
             </span>
           </div>
         </header>
@@ -494,7 +497,12 @@ function App() {
                           <small>
                             {s.id === "siam"
                               ? "Due tomorrow, 15:00"
-                              : "Due " + (5 + suppliers.indexOf(s)) + " Oct"}
+                              : "Due " +
+                                demoDay(
+                                  deadlineTime(
+                                    demoDeadline(3 + suppliers.indexOf(s)),
+                                  ),
+                                )}
                           </small>
                         </div>
                         <button
@@ -704,7 +712,7 @@ function App() {
                             type="button"
                             className="text-button"
                             onClick={() =>
-                              setI({ ...i, deadline: "2026-10-03T15:00" })
+                              setI({ ...i, deadline: demoDeadline(1) })
                             }
                           >
                             Tomorrow
@@ -713,10 +721,10 @@ function App() {
                             type="button"
                             className="text-button"
                             onClick={() =>
-                              setI({ ...i, deadline: "2026-10-07T15:00" })
+                              setI({ ...i, deadline: demoDeadline(5) })
                             }
                           >
-                            Flexible · 7 Oct
+                            Flexible · {demoDay(deadlineTime(demoDeadline(5)))}
                           </button>
                         </div>
                         <div className="fields">
@@ -839,8 +847,8 @@ function App() {
                           routes that fail your deadline or mandatory controls.
                         </p>
                         <div className="note">
-                          Demo clock: 2 Oct 2026, 10:00 SGT. Quotes and
-                          settlement times are illustrative.
+                          Demo clock: {demoDay(NOW, true)}, 10:00 SGT. Quotes
+                          and settlement times are illustrative.
                         </div>
                       </aside>
                     </div>
@@ -1683,7 +1691,7 @@ function App() {
                   className="secondary"
                   onClick={() => {
                     setSaved([]);
-                    localStorage.removeItem("navren-payments");
+                    localStorage.removeItem(PAYMENT_STORAGE_KEY);
                     setToast("Demo reset. Starting balance restored.");
                   }}
                 >

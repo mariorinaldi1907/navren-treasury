@@ -1,4 +1,16 @@
-export const NOW = new Date("2026-10-02T10:00:00+08:00").getTime();
+export const NOW = new Date("2026-10-30T10:00:00+08:00").getTime();
+// Fixed presentation scenario; all dates derive from this clock, not the host timezone.
+export const demoDeadline = (days: number) =>
+  new Date(NOW + days * 86400000 + 8 * 3600000).toISOString().slice(0, 10) +
+  "T15:00";
+export const demoDay = (timestamp: number, year = false) =>
+  new Intl.DateTimeFormat("en-SG", {
+    day: "2-digit",
+    month: "short",
+    ...(year ? { year: "numeric" as const } : {}),
+    timeZone: "Asia/Singapore",
+  }).format(timestamp);
+export const PAYMENT_STORAGE_KEY = "navren-payments-2026-10-30";
 export const QUOTE_TTL_MS = 300_000;
 export const quoteSecondsRemaining = (quotedAt: number, now = Date.now()) =>
   Math.max(0, Math.ceil((quotedAt + QUOTE_TTL_MS - now) / 1000));
@@ -103,7 +115,7 @@ export const initial: Instruction = {
   amount: 50000,
   invoice: "INV-2048",
   purpose: "Supplier invoice",
-  deadline: "2026-10-03T15:00",
+  deadline: demoDeadline(1),
   priority: "Balanced",
 };
 export interface Quote {
@@ -272,7 +284,7 @@ export function validate(i: Instruction) {
     !Number.isFinite(deadlineTime(i.deadline)) ||
     deadlineTime(i.deadline) <= NOW
   )
-    return "Choose an arrival deadline after 2 Oct 2026, 10:00 SGT.";
+    return `Choose an arrival deadline after ${demoDay(NOW, true)}, 10:00 SGT.`;
   return "";
 }
 export interface Payment {
