@@ -2,6 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   initial,
+  NOW,
+  demoDeadline,
+  deadlineTime,
   quotes,
   recommended,
   sendGuard,
@@ -29,7 +32,7 @@ test("relaxed deadline and cost priority favor scheduled route", () => {
     recommended(
       quotes({
         ...initial,
-        deadline: "2026-10-07T15:00",
+        deadline: demoDeadline(5),
         priority: "Lowest cost",
       }),
       "Lowest cost",
@@ -55,7 +58,7 @@ test("availability varies by corridor and principal limit", () => {
 });
 test("impossible deadline prevents recommendation", () => {
   assert.equal(
-    recommended(quotes({ ...initial, deadline: "2026-10-02T10:01" })),
+    recommended(quotes({ ...initial, deadline: "2026-10-30T10:01" })),
     undefined,
   );
 });
@@ -98,7 +101,7 @@ test("all treasury priorities enforce every eligibility gate", () => {
     );
     assert.equal(
       recommended(
-        quotes({ ...initial, deadline: "2026-10-02T10:01" }),
+        quotes({ ...initial, deadline: "2026-10-30T10:01" }),
         priority,
       ),
       undefined,
@@ -106,7 +109,7 @@ test("all treasury priorities enforce every eligibility gate", () => {
   }
 });
 test("lowest cost and fastest arrival are exact preferences, even when weighted scores disagree", () => {
-  const q = quotes({ ...initial, deadline: "2026-10-07T15:00" });
+  const q = quotes({ ...initial, deadline: demoDeadline(5) });
   assert.equal(
     recommended(q, "Lowest cost")?.cost,
     Math.min(...q.filter((r) => r.eligible).map((r) => r.cost)),
@@ -150,7 +153,7 @@ test("cheapest-route rationale reports the derived difference and correct reason
     cheapestExplanation(review, recommended(review)),
     /No route meets/,
   );
-  const flexible = quotes({ ...initial, deadline: "2026-10-07T15:00" });
+  const flexible = quotes({ ...initial, deadline: demoDeadline(5) });
   assert.match(
     cheapestExplanation(flexible, recommended(flexible, "Lowest cost")),
     /cheapest eligible/,
@@ -175,4 +178,28 @@ test("principal and receipt are consistent with displayed FX precision", () => {
   );
   assert.equal(q.cost, q.fxCost + q.fee + q.intermediary);
   assert.equal(q.debit, initial.amount + q.fee + q.intermediary);
+});
+
+test("presentation dates cross into November and retain the deadline trade-off", () => {
+  assert.equal(new Date(NOW).toISOString(), "2026-10-30T02:00:00.000Z");
+  assert.equal(initial.deadline, "2026-10-31T15:00");
+  assert.equal(demoDeadline(4), "2026-11-03T15:00");
+  assert.equal(demoDeadline(5), "2026-11-04T15:00");
+  const routes = quotes(initial);
+  assert.equal(routes.filter((r) => r.eligible).length, 3);
+  const scheduled = routes.find((r) => r.id === "economy")!;
+  assert.equal(
+    new Date(NOW + scheduled.hours * 3600000).toISOString(),
+    "2026-11-02T02:00:00.000Z",
+  );
+  assert.ok(NOW + scheduled.hours * 3600000 > deadlineTime(initial.deadline));
+  assert.equal(scheduled.meetsDeadline, false);
+  assert.equal(recommended(routes)?.id, "instant");
+  assert.equal(
+    recommended(
+      quotes({ ...initial, deadline: demoDeadline(5) }),
+      "Lowest cost",
+    )?.id,
+    "economy",
+  );
 });
