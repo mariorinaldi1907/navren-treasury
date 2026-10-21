@@ -41,7 +41,7 @@ If Git says you have local changes, do not delete them: see [updating safely](do
 
 ## Prototype assumptions
 
-The scenario clock is fixed at 2 October 2026, 10:00 SGT; quotes expire after five real minutes. Tracking is accelerated. Mandatory controls gate every recommendation; Lowest cost and Fastest arrival select the cheapest/fastest eligible route, while Balanced uses weighted factors. Browser-local data is resettable and is not shared between teammates. No bank, FX, sanctions or accounting services are connected.
+The scenario clock is fixed at 30 October 2026, 10:00 SGT; quotes expire after five real minutes. Tracking is accelerated. Mandatory controls gate every recommendation; Lowest cost and Fastest arrival select the cheapest/fastest eligible route, while Balanced uses weighted factors. Browser-local data is resettable and is not shared between teammates. No bank, FX, sanctions or accounting services are connected.
 
 ## Useful commands
 
@@ -65,3 +65,5 @@ The scenario clock is fixed at 2 October 2026, 10:00 SGT; quotes expire after fi
 - `work/QA.md` — original QA and product review
 
 The lockfile is committed for reproducible installs. Dependencies, build output, local caches and environment files are excluded from Git. Uploaded source contains only the application and its documentation, not other course files.
+
+Presentation scenario: 30 October 2026, 10:00 SGT; default supplier deadline 31 October, 15:00 SGT. Scheduled transfer arrives 2 November, 10:00 SGT and is excluded. A later deadline can legitimately make it eligible. Dates are illustrative calendar-hour estimates, not business-day or holiday-aware provider promises. Records from earlier scenarios remain in their original browser storage; this scenario starts with a separate demo payment history.
